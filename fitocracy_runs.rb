@@ -2,8 +2,10 @@ require 'rubygems'
 require 'mechanize'
 
 class FitocracyRuns
-	def initialize
-		@username = ""
+	def initialize(un,pw)
+		@authenticated = false
+		@username = un
+		@password = pw
 		@userid = ""
 		@userpic = ""
 		@run_data = Hash.new
@@ -14,7 +16,7 @@ class FitocracyRuns
 
 	# Public methods
 
-	def authenticate(un,pw)
+	def authenticate
 		login_url = "https://www.fitocracy.com/accounts/login/?next=%2Flogin%2F"
 		login_page = @agent.get(login_url) # check to make sure this returns a login page (it doesn't if Fitocracy is under maintence)
 
@@ -27,34 +29,36 @@ class FitocracyRuns
 			"is_username" => "1",
 			"json" => "1",
 			"next" => "/home/",
-			"username" => un,
-			"password" => pw
+			"username" => @username,
+			"password" => @password
 			})
 
-		home_page = @agent.get("https://www.fitocracy.com/home/")
-
 		if validate_login(logged_in)
-			@username = un
-			@userpic = get_userpic(home_page)
-			@userid = get_userid
-
+			@authenticated = true
 			return true
 		else
 			return false
 		end
 	end
 
-	def get_run_data
+	def get_run_data(username)
+		run_data = Hash.new
+
+		user_page = @agent.get("https://www.fitocracy.com/profile/" + username) # need to do a check here to make sure it's a valid username
+		
+		userid = get_userid(user_page)
+		userpic = get_userpic(user_page)
+
+		run_data['username'] = username
+		run_data['userid'] = userid
+		run_data['userpic'] = userpic
+		run_data['runs'] = []
+
 		stream_offset = 0
 		stream_increment = 15
 
-		user_stream_url = "http://www.fitocracy.com/activity_stream/" + stream_offset.to_s + "?user_id=" + @userid
+		user_stream_url = "http://www.fitocracy.com/activity_stream/" + stream_offset.to_s + "/?user_id=" + userid
 		user_stream = @agent.get(user_stream_url)
-		
-		@run_data['username'] = @username
-		@run_data['userid'] = @userid
-		@run_data['userpic'] = @userpic
-		@run_data['runs'] = []
 
 		begin
 			items = user_stream.search("div.stream_item")
@@ -67,7 +71,6 @@ class FitocracyRuns
 					if activity.include? 'Running'
 						runs = a.search("ul li")
 						runs.each do|r|
-							#run_info_i = r.search("span.set_user_imperial").map{ |n| n.text }
 							run_info_i = r.xpath('(./span[contains(@class,"set_user_imperial")]/@title)[1]').text
 							run_info_m = r.xpath('(./span[contains(@class,"set_user_metric")]/@title)[1]').text
 
@@ -89,20 +92,23 @@ class FitocracyRuns
 								if note
 									run["note"] = note[0]
 								end
-								@run_data["runs"] << run
+								run_data["runs"] << run
 							end
 						end
 					end
 				end
-
 			end
 
 			stream_offset += stream_increment
-			user_stream_url = "http://www.fitocracy.com/activity_stream/" + stream_offset.to_s + "?user_id=" + @userid
+			user_stream_url = "http://www.fitocracy.com/activity_stream/" + stream_offset.to_s + "/?user_id=" + userid
 			user_stream = @agent.get(user_stream_url)
 		end while is_valid_stream(user_stream)
 
-		return @run_data
+		return run_data
+	end
+
+	def is_authenticated
+		return @authenticated
 	end
 
 	# Private methods
@@ -111,23 +117,24 @@ class FitocracyRuns
 		return true
 	end
 	
-	def get_userid
-	  	profile_pos = @userpic.index('profile/')
-	  	end_pos = @userpic.index('/', profile_pos+8)
+	# Pass in user page for best results
+	def get_userid(user_page)
+		userid_xpath = '(//input[@name="profile_user"]/@value)[1]'
+		id = user_page.parser.xpath(userid_xpath)
 
-	  	return @userpic[profile_pos+8..end_pos-1]
+		return id.text
 	end
 
-	# Pass in home page for best results
-	def get_userpic(page)
-		userpic_xpath = '(//a[@id="header_profile_pic"]/img/@src)[1]'
-		pic_img = page.parser.xpath(userpic_xpath)
+	# Pass in user page for best results
+	def get_userpic(user_page)
+		userpic_xpath = '(//div[@id="profile-hero-panel"]/div/img/@src)[1]'
+		pic_img = user_page.parser.xpath(userpic_xpath)
 
 		return pic_img.text
 	end
 
 	def is_valid_stream(user_stream_page)
-		return false
+		return !(user_stream_page.search("div.stream-inner-empty").size > 0)
 	end
 
 	def get_item_datetime(item)
