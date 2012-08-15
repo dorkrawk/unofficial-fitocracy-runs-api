@@ -37,7 +37,7 @@ class FitocracyRuns
 			@username = un
 			@userpic = get_userpic(home_page)
 			@userid = get_userid
-			
+
 			return true
 		else
 			return false
@@ -56,7 +56,6 @@ class FitocracyRuns
 		@run_data['userpic'] = @userpic
 		@run_data['runs'] = []
 
-		p @run_data
 		begin
 			items = user_stream.search("div.stream_item")
 			items.each do|i|
@@ -64,7 +63,36 @@ class FitocracyRuns
 
 				actions = i.search("ul.action_detail li")
 				actions.each do |a|
-					
+					activity = a.search("div.action_prompt").text
+					if activity.include? 'Running'
+						runs = a.search("ul li")
+						runs.each do|r|
+							#run_info_i = r.search("span.set_user_imperial").map{ |n| n.text }
+							run_info_i = r.xpath('(./span[contains(@class,"set_user_imperial")]/@title)[1]').text
+							run_info_m = r.xpath('(./span[contains(@class,"set_user_metric")]/@title)[1]').text
+
+							if run_info_i.size > 0 
+								run = Hash.new
+								run["datetime"] = datetime[0]
+								run["activity"] = activity[0..-2] 
+								run_info_i_arr = run_info_i.split(" || ")
+								run["time"] = run_info_i_arr[0]
+								dist_i = run_info_i_arr[1].split(" ")
+								dist_m = run_info_m.split(" || ")[1].split(" ")
+								run["distance_i"] = dist_i[0]
+								run["units_i"] = dist_i[1]
+								run["distance_m"] = dist_m[0]
+								run["units_m"] = dist_m[1]
+								run["points"] = get_run_points(r)
+								note = a.search("ul li.stream_note").map{ |n| n.text }
+
+								if note
+									run["note"] = note[0]
+								end
+								@run_data["runs"] << run
+							end
+						end
+					end
 				end
 
 			end
@@ -73,6 +101,8 @@ class FitocracyRuns
 			user_stream_url = "http://www.fitocracy.com/activity_stream/" + stream_offset.to_s + "?user_id=" + @userid
 			user_stream = @agent.get(user_stream_url)
 		end while is_valid_stream(user_stream)
+
+		return @run_data
 	end
 
 	# Private methods
@@ -102,6 +132,13 @@ class FitocracyRuns
 
 	def get_item_datetime(item)
 		return item.search("a.action_time").map{ |n| n.text }
+	end
+
+	def get_run_points(run)
+		run_info = run.text
+		point_start = run_info.index("(+")
+		point_stop = run_info.index(")",point_start)
+		return run_info[point_start+2..point_stop-5]
 	end
 
 end
