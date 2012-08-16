@@ -2,4 +2,5 @@
 *.rbc
 .bundle
 .config
+auth_account.rb
 test
