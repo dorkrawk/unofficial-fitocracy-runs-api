@@ -6,9 +6,6 @@ class FitocracyRuns
 		@authenticated = false
 		@username = un
 		@password = pw
-		@userid = ""
-		@userpic = ""
-		@run_data = Hash.new
 		@agent = Mechanize.new
 		@agent.follow_meta_refresh = true
   		@agent.user_agent_alias = 'Windows Mozilla'
@@ -45,11 +42,15 @@ class FitocracyRuns
 		run_data = Hash.new
 
 		user_url = "https://www.fitocracy.com/profile/" + username
-		user_page = @agent.get(user_url) # need to do a check here to make sure it's a valid username
+		user_page = @agent.get(user_url)
 		
 		if validate_user(user_page, username)
-			userid = get_userid(user_page)
 			userpic = get_userpic(user_page)
+			userid = get_userid_from_pic(userpic)
+
+			p username
+			p userid
+			p userpic
 
 			run_data['username'] = username
 			run_data['userid'] = userid
@@ -61,7 +62,6 @@ class FitocracyRuns
 
 			user_stream_url = "http://www.fitocracy.com/activity_stream/" + stream_offset.to_s + "/?user_id=" + userid
 			user_stream = @agent.get(user_stream_url)
-
 			begin
 				items = user_stream.search("div.stream_item")
 				items.each do|i|
@@ -75,8 +75,7 @@ class FitocracyRuns
 							runs.each do|r|
 								run_info_i = r.xpath('(./span[contains(@class,"set_user_imperial")]/@title)[1]').text
 								run_info_m = r.xpath('(./span[contains(@class,"set_user_metric")]/@title)[1]').text
-
-								if run_info_i.size > 0 
+								if run_info_i.size > 0
 									run = Hash.new
 									run["datetime"] = datetime[0]
 									run["activity"] = activity[0..-2] 
@@ -132,10 +131,19 @@ class FitocracyRuns
 	
 	# Pass in user page for best results
 	def get_userid(user_page)
+		pp user_page.body
 		userid_xpath = '(//input[@name="profile_user"]/@value)[1]'
 		id = user_page.parser.xpath(userid_xpath)
+		pp id
 
 		return id.text
+	end
+
+	def get_userid_from_pic(user_pic)
+		profile_pos = user_pic.index("profile/")
+		end_pos = user_pic.index("/",profile_pos+8)
+
+		return user_pic[profile_pos+8..end_pos-1]
 	end
 
 	# Pass in user page for best results
