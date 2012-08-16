@@ -44,78 +44,91 @@ class FitocracyRuns
 	def get_run_data(username)
 		run_data = Hash.new
 
-		user_page = @agent.get("https://www.fitocracy.com/profile/" + username) # need to do a check here to make sure it's a valid username
+		user_url = "https://www.fitocracy.com/profile/" + username
+		user_page = @agent.get(user_url) # need to do a check here to make sure it's a valid username
 		
-		userid = get_userid(user_page)
-		userpic = get_userpic(user_page)
+		if validate_user(user_page, username)
+			userid = get_userid(user_page)
+			userpic = get_userpic(user_page)
 
-		run_data['username'] = username
-		run_data['userid'] = userid
-		run_data['userpic'] = userpic
-		run_data['runs'] = []
+			run_data['username'] = username
+			run_data['userid'] = userid
+			run_data['userpic'] = userpic
+			run_data['runs'] = []
 
-		stream_offset = 0
-		stream_increment = 15
+			stream_offset = 0
+			stream_increment = 15
 
-		user_stream_url = "http://www.fitocracy.com/activity_stream/" + stream_offset.to_s + "/?user_id=" + userid
-		user_stream = @agent.get(user_stream_url)
+			user_stream_url = "http://www.fitocracy.com/activity_stream/" + stream_offset.to_s + "/?user_id=" + userid
+			user_stream = @agent.get(user_stream_url)
 
-		begin
-			items = user_stream.search("div.stream_item")
-			items.each do|i|
-				datetime = get_item_datetime(i)
+			begin
+				items = user_stream.search("div.stream_item")
+				items.each do|i|
+					datetime = get_item_datetime(i)
 
-				actions = i.search("ul.action_detail li")
-				actions.each do |a|
-					activity = a.search("div.action_prompt").text
-					if activity.include? 'Running'
-						runs = a.search("ul li")
-						runs.each do|r|
-							run_info_i = r.xpath('(./span[contains(@class,"set_user_imperial")]/@title)[1]').text
-							run_info_m = r.xpath('(./span[contains(@class,"set_user_metric")]/@title)[1]').text
+					actions = i.search("ul.action_detail li")
+					actions.each do |a|
+						activity = a.search("div.action_prompt").text
+						if activity.include? 'Running'
+							runs = a.search("ul li")
+							runs.each do|r|
+								run_info_i = r.xpath('(./span[contains(@class,"set_user_imperial")]/@title)[1]').text
+								run_info_m = r.xpath('(./span[contains(@class,"set_user_metric")]/@title)[1]').text
 
-							if run_info_i.size > 0 
-								run = Hash.new
-								run["datetime"] = datetime[0]
-								run["activity"] = activity[0..-2] 
-								run_info_i_arr = run_info_i.split(" || ")
-								run["time"] = run_info_i_arr[0]
-								dist_i = run_info_i_arr[1].split(" ")
-								dist_m = run_info_m.split(" || ")[1].split(" ")
-								run["distance_i"] = dist_i[0]
-								run["units_i"] = dist_i[1]
-								run["distance_m"] = dist_m[0]
-								run["units_m"] = dist_m[1]
-								run["points"] = get_run_points(r)
-								note = a.search("ul li.stream_note").map{ |n| n.text }
+								if run_info_i.size > 0 
+									run = Hash.new
+									run["datetime"] = datetime[0]
+									run["activity"] = activity[0..-2] 
+									run_info_i_arr = run_info_i.split(" || ")
+									run["time"] = run_info_i_arr[0]
+									dist_i = run_info_i_arr[1].split(" ")
+									dist_m = run_info_m.split(" || ")[1].split(" ")
+									run["distance_i"] = dist_i[0]
+									run["units_i"] = dist_i[1]
+									run["distance_m"] = dist_m[0]
+									run["units_m"] = dist_m[1]
+									run["points"] = get_run_points(r)
+									note = a.search("ul li.stream_note").map{ |n| n.text }
 
-								if note
-									run["note"] = note[0]
+									if note
+										run["note"] = note[0]
+									end
+									run_data["runs"] << run
 								end
-								run_data["runs"] << run
 							end
 						end
 					end
 				end
-			end
 
-			stream_offset += stream_increment
-			user_stream_url = "http://www.fitocracy.com/activity_stream/" + stream_offset.to_s + "/?user_id=" + userid
-			user_stream = @agent.get(user_stream_url)
-		end while is_valid_stream(user_stream)
+				stream_offset += stream_increment
+				user_stream_url = "http://www.fitocracy.com/activity_stream/" + stream_offset.to_s + "/?user_id=" + userid
+				user_stream = @agent.get(user_stream_url)
+			end while is_valid_stream(user_stream)
 
-		return run_data
+			return run_data
+		else 
+			run_error = Hash.new
+			run_error["error"] = "Bad username"
+
+			return run_error
+		end
 	end
 
 	def is_authenticated
 		return @authenticated
 	end
 
-	# Private methods
+	# Private-ish methods
 
 	def validate_login(logged_in_page)
-		return true
+		return !(logged_in_page.body.include? "error")
 	end
+
+	def validate_user(user_page, username)
+		return user_page.uri.to_s.include? username
+	end
+
 	
 	# Pass in user page for best results
 	def get_userid(user_page)
