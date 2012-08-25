@@ -2,5 +2,5 @@
 *.rbc
 .bundle
 .config
-auth_account.rb
+.env
 test

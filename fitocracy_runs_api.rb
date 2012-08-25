@@ -3,10 +3,9 @@ require 'sinatra'
 require_relative 'fitocracy_runs'
 require_relative 'auth_account'
 
-# Dedicated account for API access
-auth_account = AuthAccount.new
-un = auth_account.username
-pw = auth_account.password
+# Use env variables for dedicated account for API access
+un = ENV["AUTH_USERNAME"]
+pw = ENV["AUTH_PASSWORD"]
 
 runs = FitocracyRuns.new(un,pw)
 if runs.authenticate
