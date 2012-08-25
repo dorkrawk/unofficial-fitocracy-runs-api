@@ -1,7 +1,6 @@
 require 'json'
 require 'sinatra'
 require_relative 'fitocracy_runs'
-require_relative 'auth_account'
 
 # Use env variables for dedicated account for API access
 un = ENV["AUTH_USERNAME"]
