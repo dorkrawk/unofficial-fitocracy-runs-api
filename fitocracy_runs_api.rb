@@ -15,6 +15,12 @@ if runs.authenticate
 		JSON.pretty_generate(no_un)
 	end
 
+	get '/runs/:username/:limit' do
+		run_data = runs.get_run_data(params[:username],params[:limit])
+		content_type :json
+		JSON.pretty_generate(run_data)
+	end
+
 	get '/runs/:username' do
 		run_data = runs.get_run_data(params[:username])
 		content_type :json

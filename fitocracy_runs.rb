@@ -15,7 +15,8 @@ class FitocracyRuns
 
 	def authenticate
 		login_url = "https://www.fitocracy.com/accounts/login/?next=%2Flogin%2F"
-		login_page = @agent.get(login_url) # check to make sure this returns a login page (it doesn't if Fitocracy is under maintence)
+		# TODO: check to make sure this returns a login page (it doesn't if Fitocracy is under maintence)
+		login_page = @agent.get(login_url)
 
 		login_form = login_page.form_with(:id => 'username-login-form')
 
@@ -38,7 +39,7 @@ class FitocracyRuns
 		end
 	end
 
-	def get_run_data(username)
+	def get_run_data(username, limit=1.0/0.0)
 		run_data = Hash.new
 
 		user_url = "https://www.fitocracy.com/profile/" + username
@@ -48,9 +49,8 @@ class FitocracyRuns
 			userpic = get_userpic(user_page)
 			userid = get_userid_from_pic(userpic)
 
-			p username
-			p userid
-			p userpic
+			# Fake logging:
+			puts "Getting run data for: " + username
 
 			run_data['username'] = username
 			run_data['userid'] = userid
@@ -62,6 +62,10 @@ class FitocracyRuns
 
 			user_stream_url = "http://www.fitocracy.com/activity_stream/" + stream_offset.to_s + "/?user_id=" + userid
 			user_stream = @agent.get(user_stream_url)
+
+			# TODO: look into optimizing this better
+			run_count = 0
+			limit = limit.to_f
 			begin
 				items = user_stream.search("div.stream_item")
 				items.each do|i|
@@ -73,27 +77,30 @@ class FitocracyRuns
 						if activity.include? 'Running'
 							runs = a.search("ul li")
 							runs.each do|r|
-								run_info_i = r.xpath('(./span[contains(@class,"set_user_imperial")]/@title)[1]').text
-								run_info_m = r.xpath('(./span[contains(@class,"set_user_metric")]/@title)[1]').text
-								if run_info_i.size > 0
-									run = Hash.new
-									run["datetime"] = datetime[0]
-									run["activity"] = activity[0..-2] 
-									run_info_i_arr = run_info_i.split(" || ")
-									run["time"] = run_info_i_arr[0]
-									dist_i = run_info_i_arr[1].split(" ")
-									dist_m = run_info_m.split(" || ")[1].split(" ")
-									run["distance_i"] = dist_i[0]
-									run["units_i"] = dist_i[1]
-									run["distance_m"] = dist_m[0]
-									run["units_m"] = dist_m[1]
-									run["points"] = get_run_points(r)
-									note = a.search("ul li.stream_note").map{ |n| n.text }
+								if run_count < limit
+									run_info_i = r.xpath('(./span[contains(@class,"set_user_imperial")]/@title)[1]').text
+									run_info_m = r.xpath('(./span[contains(@class,"set_user_metric")]/@title)[1]').text
+									if run_info_i.size > 0
+										run = Hash.new
+										run["datetime"] = datetime[0]
+										run["activity"] = activity[0..-2] 
+										run_info_i_arr = run_info_i.split(" || ")
+										run["time"] = run_info_i_arr[0]
+										dist_i = run_info_i_arr[1].split(" ")
+										dist_m = run_info_m.split(" || ")[1].split(" ")
+										run["distance_i"] = dist_i[0]
+										run["units_i"] = dist_i[1]
+										run["distance_m"] = dist_m[0]
+										run["units_m"] = dist_m[1]
+										run["points"] = get_run_points(r)
+										note = a.search("ul li.stream_note").map{ |n| n.text }
 
-									if note
-										run["note"] = note[0]
+										if note
+											run["note"] = note[0]
+										end
+										run_data["runs"] << run
+										run_count += 1
 									end
-									run_data["runs"] << run
 								end
 							end
 						end
@@ -103,7 +110,7 @@ class FitocracyRuns
 				stream_offset += stream_increment
 				user_stream_url = "http://www.fitocracy.com/activity_stream/" + stream_offset.to_s + "/?user_id=" + userid
 				user_stream = @agent.get(user_stream_url)
-			end while is_valid_stream(user_stream)
+			end while is_valid_stream(user_stream, limit, run_count)
 
 			return run_data
 		else 
@@ -154,7 +161,10 @@ class FitocracyRuns
 		return pic_img.text
 	end
 
-	def is_valid_stream(user_stream_page)
+	def is_valid_stream(user_stream_page, limit, run_count)
+		if run_count >= limit
+			false
+		end
 		return !(user_stream_page.search("div.stream-inner-empty").size > 0)
 	end
 
