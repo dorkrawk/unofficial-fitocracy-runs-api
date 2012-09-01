@@ -9,6 +9,9 @@ I'm sure that Fitocracy will come out with its own official API soon, but for no
 
 This unofficial RESTful API returns a json result from Fitocracy about a user's running history.  The main usage URL is: `http://unofficial-fitocracy-runs-api.herokuapp.com/runs/USERNAME`
 
+To limit the number of runs retured add another LIMIT parameter:
+'http://unofficial-fitocracy-runs-api.herokuapp.com/runs/USERNAME/LIMIT'
+
 This will provide a responce in the following format:
 
     {
