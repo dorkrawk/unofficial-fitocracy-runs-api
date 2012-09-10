@@ -2,6 +2,9 @@ require 'rubygems'
 require 'mechanize'
 
 class FitocracyRuns
+  LOGIN_URL = "https://www.fitocracy.com/accounts/login/?next=%2Flogin%2F"
+  PROFILE_URL = 'https://www.fitocracy.com/profile/'
+  
 	def initialize(un,pw)
 		@authenticated = false
 		@username = un
@@ -12,6 +15,12 @@ class FitocracyRuns
 	end
 
 	# Public methods
+  
+  def get_uri_response uri
+    Net::HTTP.start(uri.host, uri.port, :use_ssl => (uri.scheme == 'https'), :verify_mode => OpenSSL::SSL::VERIFY_NONE) do |net_http|
+      net_http.get(uri.request_uri)
+    end
+  end
 
 	def authenticate
 		login_url = "https://www.fitocracy.com/accounts/login/?next=%2Flogin%2F"
@@ -42,7 +51,7 @@ class FitocracyRuns
 	def get_run_data(username, limit=1.0/0.0)
 		run_data = Hash.new
 
-		user_url = "https://www.fitocracy.com/profile/" + username
+		user_url = PROFILE_URL + username
 		user_page = @agent.get(user_url)
 		
 		if validate_user(user_page, username)
@@ -124,6 +133,10 @@ class FitocracyRuns
 	def is_authenticated
 		return @authenticated
 	end
+
+  def fitocracy_online?
+    get_uri_response(URI(LOGIN_URL)).code == '200'
+  end
 
 	# Private-ish methods
 
