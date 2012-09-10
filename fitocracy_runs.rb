@@ -11,7 +11,7 @@ class FitocracyRuns
 		@password = pw
 		@agent = Mechanize.new
 		@agent.follow_meta_refresh = true
-  		@agent.user_agent_alias = 'Windows Mozilla'
+		@agent.user_agent_alias = 'Windows Mozilla'
 	end
 
 	# Public methods
@@ -23,9 +23,7 @@ class FitocracyRuns
   end
 
 	def authenticate
-		login_url = "https://www.fitocracy.com/accounts/login/?next=%2Flogin%2F"
-		# TODO: check to make sure this returns a login page (it doesn't if Fitocracy is under maintence)
-		login_page = @agent.get(login_url)
+		login_page = @agent.get(LOGIN_URL)
 
 		login_form = login_page.form_with(:id => 'username-login-form')
 
@@ -134,8 +132,8 @@ class FitocracyRuns
 		return @authenticated
 	end
 
-  def fitocracy_online?
-    get_uri_response(URI(LOGIN_URL)).code == '200'
+  def fitocracy_offline?
+    get_uri_response(URI(LOGIN_URL)).code != '200'
   end
 
 	# Private-ish methods
