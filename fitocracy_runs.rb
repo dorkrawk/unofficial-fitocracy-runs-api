@@ -8,7 +8,6 @@ class FitocracyRuns
 		@password = pw
 		@agent = Mechanize.new
 		@agent.follow_meta_refresh = true
-  		@agent.user_agent_alias = 'Windows Mozilla'
 	end
 
 	# Public methods
@@ -31,12 +30,7 @@ class FitocracyRuns
 			"password" => @password
 			})
 
-		if validate_login(logged_in)
-			@authenticated = true
-			return true
-		else
-			return false
-		end
+		validate_login(logged_in) && @authenticated = true
 	end
 
 	def get_run_data(username, limit=1.0/0.0)
@@ -122,17 +116,17 @@ class FitocracyRuns
 	end
 
 	def is_authenticated
-		return @authenticated
+		@authenticated
 	end
 
 	# Private-ish methods
 
 	def validate_login(logged_in_page)
-		return !(logged_in_page.body.include? "error")
+		!(logged_in_page.body.include? "error")
 	end
 
 	def validate_user(user_page, username)
-		return user_page.uri.to_s.include? username
+		user_page.uri.to_s.include? username
 	end
 
 	
@@ -141,16 +135,15 @@ class FitocracyRuns
 		pp user_page.body
 		userid_xpath = '(//input[@name="profile_user"]/@value)[1]'
 		id = user_page.parser.xpath(userid_xpath)
-		pp id
 
-		return id.text
+		id.text
 	end
 
 	def get_userid_from_pic(user_pic)
 		profile_pos = user_pic.index("profile/")
 		end_pos = user_pic.index("/",profile_pos+8)
 
-		return user_pic[profile_pos+8..end_pos-1]
+		user_pic[profile_pos+8..end_pos-1]
 	end
 
 	# Pass in user page for best results
@@ -158,14 +151,14 @@ class FitocracyRuns
 		userpic_xpath = '(//div[@id="profile-hero-panel"]/div/img/@src)[1]'
 		pic_img = user_page.parser.xpath(userpic_xpath)
 
-		return pic_img.text
+		pic_img.text
 	end
 
 	def is_valid_stream(user_stream_page, limit, run_count)
 		if run_count >= limit
 			false
 		end
-		return !(user_stream_page.search("div.stream-inner-empty").size > 0)
+		!(user_stream_page.search("div.stream-inner-empty").size > 0)
 	end
 
 	def get_item_datetime(item)
@@ -176,7 +169,7 @@ class FitocracyRuns
 		run_info = run.text
 		point_start = run_info.index("(+")
 		point_stop = run_info.index(")",point_start)
-		return run_info[point_start+2..point_stop-5]
+		run_info[point_start+2..point_stop-5]
 	end
 
 end

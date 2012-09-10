@@ -1,12 +1,14 @@
 require 'json'
 require 'sinatra'
 require_relative 'fitocracy_runs'
+require 'benchmark'
 
 # Use env variables for dedicated account for API access
 un = ENV["AUTH_USERNAME"]
 pw = ENV["AUTH_PASSWORD"]
 
 runs = FitocracyRuns.new(un,pw)
+
 if runs.authenticate
 	get '/runs/' do
 		no_un = Hash.new
