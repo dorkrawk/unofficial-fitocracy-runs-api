@@ -96,9 +96,8 @@ class FitocracyRuns
 										run["points"] = get_run_points(r)
 										note = a.search("ul li.stream_note").map{ |n| n.text }
 
-										if note
-											run["note"] = note[0]
-										end
+										run["note"] = note[0] if note
+											
 										run_data["runs"] << run
 										run_count += 1
 									end
