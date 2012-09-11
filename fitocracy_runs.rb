@@ -14,11 +14,9 @@ class FitocracyRuns
 	end
 
 	# Public methods
-  
-  def get_uri_response uri
-    Net::HTTP.start(uri.host, uri.port, :use_ssl => (uri.scheme == 'https'), :verify_mode => OpenSSL::SSL::VERIFY_NONE) do |net_http|
-      net_http.get(uri.request_uri)
-    end
+
+  def get_uri_response (uri)
+    Net::HTTP.start(uri.host, uri.port, :use_ssl => (uri.scheme == 'https'), :verify_mode => OpenSSL::SSL::VERIFY_NONE) { |net_http| net_http.get(uri.request_uri) }
   end
 
 	def authenticate
@@ -61,7 +59,7 @@ class FitocracyRuns
 			stream_offset = 0
 			stream_increment = 15
 
-			user_stream_url = "http://www.fitocracy.com/activity_stream/" + stream_offset.to_s + "/?user_id=" + userid
+			user_stream_url = "http://www.fitocracy.com/activity_stream/#{stream_offset.to_s}/?user_id=#{userid}"
 			user_stream = @agent.get(user_stream_url)
 
 			# TODO: look into optimizing this better
@@ -96,9 +94,8 @@ class FitocracyRuns
 										run["points"] = get_run_points(r)
 										note = a.search("ul li.stream_note").map{ |n| n.text }
 
-										if note
-											run["note"] = note[0]
-										end
+										run["note"] = note[0] if note
+											
 										run_data["runs"] << run
 										run_count += 1
 									end
@@ -109,7 +106,7 @@ class FitocracyRuns
 				end
 
 				stream_offset += stream_increment
-				user_stream_url = "http://www.fitocracy.com/activity_stream/" + stream_offset.to_s + "/?user_id=" + userid
+				user_stream_url = "http://www.fitocracy.com/activity_stream/#{stream_offset.to_s}/?user_id=#{userid}"
 				user_stream = @agent.get(user_stream_url)
 			end while is_valid_stream(user_stream, limit, run_count)
 
