@@ -7,6 +7,7 @@ un = ENV["AUTH_USERNAME"]
 pw = ENV["AUTH_PASSWORD"]
 
 runs = FitocracyRuns.new(un,pw)
+
 if runs.fitocracy_offline?
   get '/*' do
 		bad_auth = Hash.new
