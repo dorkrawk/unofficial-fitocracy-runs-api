@@ -61,7 +61,7 @@ class FitocracyRuns
 			stream_offset = 0
 			stream_increment = 15
 
-			user_stream_url = "http://www.fitocracy.com/activity_stream/" + stream_offset.to_s + "/?user_id=" + userid
+			user_stream_url = "http://www.fitocracy.com/activity_stream/#{stream_offset.to_s}/?user_id=#{userid}"
 			user_stream = @agent.get(user_stream_url)
 
 			# TODO: look into optimizing this better
@@ -109,7 +109,7 @@ class FitocracyRuns
 				end
 
 				stream_offset += stream_increment
-				user_stream_url = "http://www.fitocracy.com/activity_stream/" + stream_offset.to_s + "/?user_id=" + userid
+				user_stream_url = "http://www.fitocracy.com/activity_stream/#{stream_offset.to_s}/?user_id=#{userid}"
 				user_stream = @agent.get(user_stream_url)
 			end while is_valid_stream(user_stream, limit, run_count)
 
