@@ -14,11 +14,9 @@ class FitocracyRuns
 	end
 
 	# Public methods
-  
-  def get_uri_response uri
-    Net::HTTP.start(uri.host, uri.port, :use_ssl => (uri.scheme == 'https'), :verify_mode => OpenSSL::SSL::VERIFY_NONE) do |net_http|
-      net_http.get(uri.request_uri)
-    end
+
+  def get_uri_response (uri)
+    Net::HTTP.start(uri.host, uri.port, :use_ssl => (uri.scheme == 'https'), :verify_mode => OpenSSL::SSL::VERIFY_NONE) { |net_http| net_http.get(uri.request_uri) }
   end
 
 	def authenticate
