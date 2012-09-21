@@ -43,6 +43,11 @@ class FitocracyRuns
 
 		user_url = PROFILE_URL + username
 		user_page = @agent.get(user_url)
+
+		if fitocracy_mainence?(user_page) 
+			run_error["error"] = "Fitocracy on maintenance"
+			return run_error
+		end
 		
 		if validate_user(user_page, username)
 			userpic = get_userpic(user_page)
@@ -125,6 +130,10 @@ class FitocracyRuns
 
   def fitocracy_offline?
     get_uri_response(URI(LOGIN_URL)).code != '200'
+  end
+
+  def fitocracy_mainence?(user_page)
+  	user_page.uri.to_s.include? "maintenance"
   end
 
 	# Private-ish methods
