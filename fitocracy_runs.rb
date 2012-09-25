@@ -75,7 +75,7 @@ class FitocracyRuns
 				items.each do|i|
 					datetime = get_item_datetime(i)
 
-					actions = i.search("ul.action_detail li")
+					actions = i.search("ul.action_detail li") # TODO: change this to xpath to find only runs
 					actions.each do |a|
 						activity = a.search("div.action_prompt").text
 						if activity.include? 'Running'
@@ -113,7 +113,7 @@ class FitocracyRuns
 				stream_offset += stream_increment
 				user_stream_url = "http://www.fitocracy.com/activity_stream/#{stream_offset.to_s}/?user_id=#{userid}"
 				user_stream = @agent.get(user_stream_url)
-			end while is_valid_stream(user_stream, limit, run_count)
+			end while is_valid_stream(user_stream, limit, run_count) && run_count < limit
 
 			return run_data
 		else 
@@ -165,10 +165,10 @@ class FitocracyRuns
 
 	# Pass in user page for best results
 	def get_userpic(user_page)
-		userpic_xpath = '(//div[@id="profile-hero-panel"]/div/img/@src)[1]'
-		pic_img = user_page.parser.xpath(userpic_xpath)
+			userpic_xpath = '(//div[@id="profile-hero-panel"]/div/img/@src)[1]'
+			pic_img = user_page.parser.xpath(userpic_xpath)
 
-		pic_img.text
+			pic_img.text
 	end
 
 	def is_valid_stream(user_stream_page, limit, run_count)
