@@ -4,7 +4,6 @@ require 'mechanize'
 class FitocracyRuns
   LOGIN_URL = "https://www.fitocracy.com/accounts/login/?next=%2Flogin%2F"
   PROFILE_URL = 'https://www.fitocracy.com/profile/'
-  ONLINE_TEST_URL = 'http://www.fitocracy.com/activity_stream/'
   
 	def initialize(un,pw)
 		@authenticated = false
@@ -65,7 +64,7 @@ class FitocracyRuns
 			stream_offset = 0
 			stream_increment = 15
 
-			user_stream_url = "http://www.fitocracy.com/activity_stream/#{stream_offset.to_s}/?user_id=#{userid}"
+			user_stream_url = "https://www.fitocracy.com/activity_stream/#{stream_offset.to_s}/?user_id=#{userid}"
 			user_stream = @agent.get(user_stream_url)
 
 			# TODO: look into optimizing this better
@@ -117,7 +116,7 @@ class FitocracyRuns
 
 				if run_count < limit
 					stream_offset += stream_increment
-					user_stream_url = "http://www.fitocracy.com/activity_stream/#{stream_offset.to_s}/?user_id=#{userid}"
+					user_stream_url = "https://www.fitocracy.com/activity_stream/#{stream_offset.to_s}/?user_id=#{userid}"
 					user_stream = @agent.get(user_stream_url)
 				end
 			end while is_valid_stream(user_stream, limit, run_count) && run_count < limit
@@ -136,7 +135,7 @@ class FitocracyRuns
 	end
 
   def fitocracy_offline?
-    get_uri_response(URI(ONLINE_TEST_URL)).code != '200'
+    get_uri_response(URI(LOGIN_URL)).code != '200'
   end
 
   def fitocracy_mainence?(user_page)
