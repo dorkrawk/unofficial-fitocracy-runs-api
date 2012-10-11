@@ -4,6 +4,7 @@ require 'mechanize'
 class FitocracyRuns
   LOGIN_URL = "https://www.fitocracy.com/accounts/login/?next=%2Flogin%2F"
   PROFILE_URL = 'https://www.fitocracy.com/profile/'
+  ONLINE_TEST_URL = 'http://www.fitocracy.com/activity_stream/'
   
 	def initialize(un,pw)
 		@authenticated = false
@@ -72,7 +73,7 @@ class FitocracyRuns
 			limit = limit.to_f
 			begin
 				items = user_stream.search("div.stream_item")
-				items.each do|i|
+				items.each do |i|
 					datetime = get_item_datetime(i)
 
 					actions = i.search("ul.action_detail li") # TODO: change this to xpath to find only runs
@@ -104,15 +105,21 @@ class FitocracyRuns
 										run_data["runs"] << run
 										run_count += 1
 									end
+								else
+									break
 								end
+								break if run_count >= limit
 							end
 						end
 					end
+					break if run_count >= limit
 				end
 
-				stream_offset += stream_increment
-				user_stream_url = "http://www.fitocracy.com/activity_stream/#{stream_offset.to_s}/?user_id=#{userid}"
-				user_stream = @agent.get(user_stream_url)
+				if run_count < limit
+					stream_offset += stream_increment
+					user_stream_url = "http://www.fitocracy.com/activity_stream/#{stream_offset.to_s}/?user_id=#{userid}"
+					user_stream = @agent.get(user_stream_url)
+				end
 			end while is_valid_stream(user_stream, limit, run_count) && run_count < limit
 
 			return run_data
@@ -129,7 +136,7 @@ class FitocracyRuns
 	end
 
   def fitocracy_offline?
-    get_uri_response(URI(LOGIN_URL)).code != '200'
+    get_uri_response(URI(ONLINE_TEST_URL)).code != '200'
   end
 
   def fitocracy_mainence?(user_page)
